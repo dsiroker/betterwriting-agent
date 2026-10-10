@@ -157,7 +157,7 @@ test("409 on trial mint counts as exhausted; login clears it", async () => {
 test("pre-tool-use Write: rewrites body, keeps frontmatter, returns full input", async () => {
   const content = "---\ntitle: Plan\ntags: [a, b]\n---\n\n# Plan\n\n" + LONG + "\n```\ncode block with a great many words that must never be touched by anyone\n```\n";
   const r = await run(HOOK, ["pre-tool-use"], pre("Write", { file_path: "/repo/docs/plan.md", content }));
-  assert.deepEqual(r.json, { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "Better Writing rewrote the prose",
+  assert.deepEqual(r.json, { hookSpecificOutput: { hookEventName: "PreToolUse",
     updatedInput: { file_path: "/repo/docs/plan.md", content: content.replace(LONG, "[pg] " + LONG) } } });
   const sent = mock.requests.find((q) => q.url === "/api/v1/rewrite").body;
   assert.equal(sent.mode, "markdown");
@@ -189,7 +189,7 @@ test("pre-tool-use Edit: needs two sentences, rewrites new_string, keeps other f
   assert.equal(logLines().at(-1).status, "skip:sentences");
   const two = "Fix the bug in the parser so that long lines are handled correctly. Then run the tests again to be sure.\n";
   r = await run(HOOK, ["pre-tool-use"], pre("Edit", { file_path: "/repo/README.md", old_string: "a", new_string: two, replace_all: true }));
-  assert.deepEqual(r.json, { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "Better Writing rewrote the prose",
+  assert.deepEqual(r.json, { hookSpecificOutput: { hookEventName: "PreToolUse",
     updatedInput: { file_path: "/repo/README.md", old_string: "a", new_string: "[pg] " + two, replace_all: true } } });
 });
 

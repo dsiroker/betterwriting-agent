@@ -1,7 +1,7 @@
 {
   "name": "betterwriting",
   "displayName": "Better Writing",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Rewrites Claude's prose responses and the prose files it writes in a named writer's voice (Paul Graham first) through betterwriting.ai. Run /voice pg to start.",
   "author": { "name": "Dan Siroker", "url": "https://betterwriting.ai" },
   "homepage": "https://betterwriting.ai/agents",

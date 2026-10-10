@@ -34,7 +34,8 @@ Needs Node 18 or newer on PATH.
 - **Responses.** A `MessageDisplay` hook sends each batch of completed lines to `POST /api/v1/rewrite` in markdown mode
   and shows the rewrite in place. Display only: the transcript and what Claude sees keep the original.
 - **Files.** A `PreToolUse` hook on `Write` and `Edit` rewrites the prose before it hits disk. Code fences, tables,
-  headers, links, list markers and lines under 12 words are left alone. Rewritten prose writes are auto-approved.
+  headers, links, list markers and lines under 12 words are left alone. The hook only swaps the content; your normal
+  permission rules still decide whether the write happens.
 - **Codex.** A `PostToolUse` hook on `apply_patch` (and shell redirections to prose files, best effort) rewrites touched
   prose files on disk. Codex has no display hook, so Codex responses are not rewritten.
 

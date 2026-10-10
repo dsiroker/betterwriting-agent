@@ -66,7 +66,7 @@ async function preToolUse(input, cfg) {
     if (r.status !== 200 || !r.text) return done(`err:${r.status}`, bytes);
     const out = front + wrapWhitespace(body, r.text);
     if (out === content) return done("skip:same", bytes);
-    emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "Better Writing rewrote the prose", updatedInput: { ...ti, content: out } } });
+    emit({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: { ...ti, content: out } } });
     return done("ok", bytes);
   }
 
@@ -83,7 +83,7 @@ async function preToolUse(input, cfg) {
   if (r.status !== 200 || !r.text) return done(`err:${r.status}`, bytes);
   const out = wrapWhitespace(ns, r.text);
   if (out === ns) return done("skip:same", bytes);
-  emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "Better Writing rewrote the prose", updatedInput: { ...ti, new_string: out } } });
+  emit({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: { ...ti, new_string: out } } });
   return done("ok", bytes);
 }
 

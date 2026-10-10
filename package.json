@@ -1,6 +1,6 @@
 {
   "name": "betterwriting-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Better Writing for Claude Code and Codex: hooks that rewrite responses and prose files in a named writer's voice",
   "type": "module",
