@@ -1,0 +1,14 @@
+{
+  "name": "betterwriting-agent",
+  "owner": { "name": "Dan Siroker", "url": "https://betterwriting.ai" },
+  "description": "Better Writing plugin for Claude Code: rewrite responses and prose files in a named writer's voice",
+  "plugins": [
+    {
+      "name": "betterwriting",
+      "source": ".",
+      "description": "Rewrites Claude's prose responses and the prose files it writes in a named writer's voice through betterwriting.ai",
+      "category": "writing",
+      "tags": ["writing", "voice", "style"]
+    }
+  ]
+}

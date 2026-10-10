@@ -1,0 +1,20 @@
+{
+  "description": "Better Writing: rewrite Claude's prose responses and the prose files it writes in your chosen voice",
+  "hooks": {
+    "MessageDisplay": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hook.mjs\" message-display", "timeout": 60 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hook.mjs\" pre-tool-use", "timeout": 120 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "betterwriting-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Better Writing for Claude Code and Codex: hooks that rewrite responses and prose files in a named writer's voice",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test test/" }
+}

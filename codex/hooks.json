@@ -1,0 +1,13 @@
+{
+  "description": "Better Writing: rewrite prose files Codex writes in your chosen voice (responses are not rewritten; Codex has no display hook)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$|^Bash$",
+        "hooks": [
+          { "type": "command", "command": "node \"__BW_HOME__/agent/bin/codex-hook.mjs\"", "timeout": 120 }
+        ]
+      }
+    ]
+  }
+}
