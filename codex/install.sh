@@ -14,4 +14,4 @@ fi
 node "$BW_HOME/agent/codex/merge-hooks.mjs" "$BW_HOME/agent/codex/hooks.json" "${CODEX_HOME:-$HOME/.codex}/hooks.json" "$BW_HOME"
 echo "Codex: prose files Codex writes are rewritten in your voice. Codex responses are not (no display hook)."
 echo "Codex asks you to trust new hooks: run /hooks inside Codex once."
-echo "Set a voice: node \"$BW_HOME/agent/bin/bw.mjs\" pg"
+echo "Get a key (opens your browser): node \"$BW_HOME/agent/bin/bw.mjs\" login"

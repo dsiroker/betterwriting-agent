@@ -38,4 +38,4 @@ fi
 
 [ "$did" = 1 ] || echo "Neither claude nor codex found on PATH. Install Claude Code (https://claude.com/claude-code) or Codex, then rerun."
 echo ""
-echo "Now run /voice pg in Claude Code"
+echo "Now run /voice login in Claude Code and approve the key in your browser"

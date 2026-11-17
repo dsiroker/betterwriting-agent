@@ -5,7 +5,7 @@ import fs from "node:fs";
 import {
   loadConfig, saveConfig, log, rewrite, isProsePath, splitFrontmatter, frontmatterOff,
   maxProseBlockWords, totalWords, sentenceCount, wrapWhitespace, trialExhausted, today, readStdin,
-  MIN_PROSE_WORDS, MAX_WORDS, NOTICE,
+  MIN_PROSE_WORDS, MAX_WORDS, NOTICE, approvalNotice,
 } from "../lib/core.mjs";
 
 const event = process.argv[2];
@@ -42,6 +42,16 @@ async function messageDisplay(input, cfg) {
     }
     return done("402", bytes);
   }
+  if (r.pending) {
+    // Waiting on the person's approval: say so once per code, at the end of a message, and show the original.
+    if (input.final && !cfg.pending.notice_shown) {
+      cfg.pending.notice_shown = true;
+      saveConfig(cfg);
+      emit({ hookSpecificOutput: { hookEventName: "MessageDisplay", displayContent: delta.replace(/\s*$/, "") + "\n\n" + approvalNotice(cfg) + "\n" } });
+      return done("pending:notice", bytes);
+    }
+    return done("pending", bytes);
+  }
   if (r.status !== 200 || !r.text) return done(`err:${r.status}`, bytes);
   emit({ hookSpecificOutput: { hookEventName: "MessageDisplay", displayContent: wrapWhitespace(delta, r.text) } });
   return done("ok", bytes);
@@ -63,6 +73,7 @@ async function preToolUse(input, cfg) {
     if (maxProseBlockWords(body) < MIN_PROSE_WORDS) return done("skip:short", bytes);
     if (totalWords(body) > MAX_WORDS) return done("skip:long", bytes);
     const r = await rewrite(cfg, body, { ms: 100000 });
+    if (r.pending) return done("pending", bytes);
     if (r.status !== 200 || !r.text) return done(`err:${r.status}`, bytes);
     const out = front + wrapWhitespace(body, r.text);
     if (out === content) return done("skip:same", bytes);
@@ -80,6 +91,7 @@ async function preToolUse(input, cfg) {
   if (sentenceCount(ns) < 2) return done("skip:sentences", bytes);
   if (totalWords(ns) > MAX_WORDS) return done("skip:long", bytes);
   const r = await rewrite(cfg, ns, { ms: 100000 });
+  if (r.pending) return done("pending", bytes);
   if (r.status !== 200 || !r.text) return done(`err:${r.status}`, bytes);
   const out = wrapWhitespace(ns, r.text);
   if (out === ns) return done("skip:same", bytes);

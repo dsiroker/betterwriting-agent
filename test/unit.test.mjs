@@ -60,7 +60,7 @@ test("config defaults are created when missing", () => {
     const cfg = loadConfig();
     assert.deepEqual(cfg, { ...DEFAULTS });
     assert.equal(cfg.endpoint, "https://betterwriting.ai");
-    assert.equal(cfg.voice, "pg");
+    assert.equal(cfg.voice, "human");
     assert.equal(cfg.responses, true);
     assert.equal(cfg.artifacts, true);
     const onDisk = JSON.parse(fs.readFileSync(configPath(), "utf8"));

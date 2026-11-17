@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const HOOK = path.join(here, "..", "bin", "hook.mjs");
 const CODEX = path.join(here, "..", "bin", "codex-hook.mjs");
 const BW = path.join(here, "..", "bin", "bw.mjs");
-const NOTICE = "Better Writing trial used up. Keep going: https://betterwriting.ai/keys";
+const NOTICE = "Better Writing trial used up. Keep going: https://betterwriting.ai/pricing";
 
 let mock, home;
 const cfgPath = () => path.join(home, "config.json");
@@ -231,7 +231,7 @@ test("bw.mjs: status, set validates against /voices, toggles, logout, test", asy
   assert.match(r.out, /voice: pg/);
   assert.match(r.out, /key: none/);
   r = await run(BW, ["set", "nope"]);
-  assert.match(r.out, /Unknown voice "nope". Available: pg \(Paul Graham\)/);
+  assert.match(r.out, /Unknown voice "nope". Available: human \(Human\), pg \(Paul Graham\)/);
   r = await run(BW, ["pg"]);
   assert.match(r.out, /Voice set to Paul Graham \(pg\)/);
   r = await run(BW, ["responses", "off"]);
@@ -252,4 +252,62 @@ test("bw.mjs: status, set validates against /voices, toggles, logout, test", asy
   assert.equal(readCfg().api_key, undefined);
   r = await run(BW, ["login", "garbage"]);
   assert.match(r.out, /Usage/);
+});
+
+// ---------- approval flow (a person approves the key once) ----------
+const mockSet = (body) => fetch(mock.url + "/__mock", { method: "POST", body: JSON.stringify(body) });
+
+test("no key: the hook asks for approval, shows the link once, and passes the original through", async () => {
+  await mockSet({ approval: "ask" });
+  let r = await run(HOOK, ["message-display"], md(LONG));
+  assert.equal(r.out, "");
+  assert.equal(readCfg().pending.verify_url, "https://betterwriting.ai/activate?code=ABCD-EFGH");
+  assert.equal(readCfg().api_key, undefined);
+  assert.equal(logLines().at(-1).status, "pending");
+  r = await run(HOOK, ["message-display"], md(LONG, { final: true }));
+  assert.match(r.json.hookSpecificOutput.displayContent, /needs your OK once\. Open https:\/\/betterwriting\.ai\/activate\?code=ABCD-EFGH/);
+  assert.ok(r.json.hookSpecificOutput.displayContent.startsWith(LONG.trimEnd()));
+  r = await run(HOOK, ["message-display"], md(LONG, { final: true }));
+  assert.equal(r.out, "", "the link is shown once per code");
+  r = await run(HOOK, ["pre-tool-use"], pre("Write", { file_path: "/tmp/x/notes.md", content: LONG }));
+  assert.equal(r.out, "", "files are written as the agent wrote them while waiting");
+});
+
+test("after the person approves, the next hook call picks up the key and rewrites", async () => {
+  await mockSet({ approval: "ask" });
+  await run(HOOK, ["message-display"], md(LONG));
+  await mockSet({ grant: "approved" });
+  const r = await run(HOOK, ["message-display"], md(LONG));
+  assert.equal(r.json.hookSpecificOutput.displayContent, "[pg] " + LONG);
+  const cfg = readCfg();
+  assert.match(cfg.api_key, /^bw_live_/);
+  assert.equal(cfg.pending, undefined);
+  assert.equal(r.out.includes(cfg.api_key), false);
+});
+
+test("a declined request is not asked again for a day", async () => {
+  await mockSet({ approval: "ask" });
+  await run(HOOK, ["message-display"], md(LONG));
+  await mockSet({ grant: "denied" });
+  await run(HOOK, ["message-display"], md(LONG));
+  assert.ok(readCfg().declined_at);
+  assert.equal(readCfg().pending, undefined);
+  const n = mock.requests.length;
+  const r = await run(HOOK, ["message-display"], md(LONG));
+  assert.equal(r.out, "");
+  assert.equal(mock.requests.length, n, "no request goes out after a decline");
+});
+
+test("bw.mjs login: prints the link while waiting, and saves the key once approved", async () => {
+  await mockSet({ approval: "ask" });
+  let r = await run(BW, ["login"], undefined, { BETTERWRITING_NO_BROWSER: "1", BETTERWRITING_LOGIN_WAIT_MS: "1200" });
+  assert.match(r.out, /Waiting for approval\. Open this link, sign in and click Approve \(code ABCD-EFGH\):\nhttps:\/\/betterwriting\.ai\/activate\?code=ABCD-EFGH/);
+  r = await run(BW, ["status"]);
+  assert.match(r.out, /waiting for your approval: https:\/\/betterwriting\.ai\/activate/);
+  setTimeout(() => { mockSet({ grant: "approved" }); }, 600);
+  r = await run(BW, ["login"], undefined, { BETTERWRITING_NO_BROWSER: "1", BETTERWRITING_LOGIN_WAIT_MS: "6000" });
+  assert.match(r.out, /^Approved\. Key saved \(your key \(bw_live_\.\.\.\)\)/);
+  assert.equal(r.out.includes(readCfg().api_key), false);
+  r = await run(BW, ["test"]);
+  assert.match(r.out, /AFTER \(pg, \d+ ms\)\n\[pg\] We are pleased/);
 });

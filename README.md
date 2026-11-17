@@ -1,8 +1,8 @@
 # Better Writing for Claude Code and Codex
 
 Tell your agent once. From then on every response it shows you and every prose file it writes
-(.md, .txt, .rst, docs/) is rewritten in a named writer's voice through [betterwriting.ai](https://betterwriting.ai).
-Paul Graham first. No account needed to try it.
+(.md, .txt, .rst, docs/) is rewritten through [betterwriting.ai](https://betterwriting.ai) so it reads as written by a
+person. You approve the key once in a browser. The first 15,000 words are free.
 
 ## Install
 
@@ -13,12 +13,14 @@ curl -fsSL https://raw.githubusercontent.com/dsiroker/betterwriting-agent/main/i
 Then in Claude Code:
 
 ```
-/voice pg
+/voice login
 ```
 
-Or paste this into any agent:
+That opens a page in your browser. Sign in with Google and click Approve. The plugin picks up the key by itself.
 
-> Set up Better Writing per https://betterwriting.ai/agents.md
+To rewrite one thing without installing anything, say this to any agent:
+
+> Use betterwriting.ai to rewrite this
 
 By hand, for Claude Code only:
 
@@ -46,27 +48,31 @@ Skipped: `CLAUDE.md`, `AGENTS.md`, `*.lock`, anything under `node_modules/`, and
 
 | Command | Effect |
 | --- | --- |
-| `/voice pg` | set the voice (validated against `GET /api/v1/voices`) |
+| `/voice login` | ask for a key and open the approval page in your browser |
+| `/voice human` | the default voice: no named writer |
+| `/voice pg` | write as Paul Graham (validated against `GET /api/v1/voices`) |
 | `/voice status` | voice, switches, key type (masked), trial state |
 | `/voice off`, `/voice on` | master switch |
 | `/voice responses off` | leave responses alone, keep rewriting files |
 | `/voice artifacts off` | leave files alone, keep rewriting responses |
-| `/voice login <key>` | use your own key from https://betterwriting.ai/keys |
-| `/voice logout` | back to the trial key |
+| `/voice login <key>` | use a key you minted at https://betterwriting.ai/keys |
+| `/voice logout` | forget the key |
 | `/voice test` | rewrite a fixed paragraph, print before and after |
 
 Config lives in `~/.betterwriting/config.json`. Codex users run `node ~/.betterwriting/agent/bin/bw.mjs <command>`.
 
 ## Trial and limits
 
-First use mints a trial key for this device: 15,000 words or 300 rewrites, lifetime. When it runs out the hooks go
-quiet and a one-line notice appears under one response a day. `/voice login <key>` continues with a free key
-(50 rewrites and 20,000 words a day). One trial per device; 3 new trials per IP per day.
+A key needs a person's approval once per machine. `/voice login` opens the page. If you skip it, the first response
+long enough to rewrite ends with one line carrying the link, and everything shows as the agent wrote it until you
+approve. The key belongs to your Google account, so the trial is one per person: 15,000 words. When it runs out the
+hooks go quiet and a one-line notice appears under one response a day. Plans and limits: https://betterwriting.ai/pricing.
+A machine that already holds an old `bw_trial_` key keeps it until its quota is gone.
 
 ## Privacy
 
 The text of each response batch and each prose file write is sent to betterwriting.ai over HTTPS and rewritten there.
-Nothing else leaves your machine. The trial device id is a SHA-256 of hostname, username and machine id. The local log
+Nothing else leaves your machine. The device id sent with a key request is a SHA-256 of hostname, username and machine id. The local log
 (`~/.betterwriting/log.jsonl`, capped at 1 MB) records event, byte count, latency and status; never text.
 
 ## Fail open
@@ -92,3 +98,4 @@ node --test test
 
 Tests run against `test/mock-api.mjs`, a mock of the API contract. This repo mirrors `agent/` in the private
 betterwriting repo; do not edit here.
+

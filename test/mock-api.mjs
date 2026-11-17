@@ -26,7 +26,9 @@ export function markdownRewrite(text) {
 }
 
 export function startMock({ port = 0 } = {}) {
-  const state = { mode: "ok", requests: [], trials: new Map(), quota: { words: 15000, rewrites: 300 } };
+  // approval: "auto" hands an old-style trial key straight back (legacy devices); "ask" runs the device flow, and the
+  // test plays the person by setting grant to "approved" or "denied" through POST /__mock.
+  const state = { mode: "ok", approval: "auto", grant: "pending", requests: [], trials: new Map(), quota: { words: 15000, rewrites: 300 } };
   const json = (res, status, body, headers = {}) => { res.writeHead(status, { "content-type": "application/json", ...headers }); res.end(JSON.stringify(body)); };
   const server = http.createServer((req, res) => {
     let raw = "";
@@ -39,11 +41,23 @@ export function startMock({ port = 0 } = {}) {
       if (req.url === "/__mock" && req.method === "GET") return json(res, 200, { mode: state.mode, requests: state.requests });
       if (state.mode === "hang") return; // never answers
       if (state.mode === "500") return json(res, 500, { error: "upstream" });
-      if (req.url === "/api/v1/voices" && req.method === "GET") return json(res, 200, { voices: [{ id: "pg", name: "Paul Graham", status: "live", prompt_version: "v1", model: "claude-fable-5-1" }] });
+      if (req.url === "/api/v1/voices" && req.method === "GET") return json(res, 200, { voices: [{ id: "human", name: "Human", status: "live", default: true }, { id: "pg", name: "Paul Graham", status: "live", prompt_version: "v1", model: "claude-fable-5-1" }] });
+      if (req.url === "/api/v1/trial/poll" && req.method === "POST") {
+        if (body?.device_code !== "bwd_mock") return json(res, 404, { error: "unknown_code" });
+        if (state.grant === "approved") { state.grant = "claimed"; return json(res, 200, { api_key: "bw_live_" + "m".repeat(43), plan: "trial", limits: { trial_words: 15000 } }); }
+        if (state.grant === "denied") return json(res, 403, { error: "denied" });
+        if (state.grant === "claimed" || state.grant === "expired") return json(res, 410, { error: state.grant });
+        return json(res, 202, { status: "pending", interval: 1 });
+      }
       if (req.url === "/api/v1/trial" && req.method === "POST") {
         if (state.mode === "trial-429") return json(res, 429, { error: "rate_limited" });
         if (!body?.device) return json(res, 400, { error: "bad_request" });
         if (state.mode === "402") return json(res, 409, { error: "trial_exhausted", upgrade_url: "https://betterwriting.ai/keys" });
+        if (state.approval === "ask") {
+          if (state.grant !== "pending") state.grant = "pending";
+          return json(res, 202, { status: "approval_required", device_code: "bwd_mock", user_code: "ABCD-EFGH", verify_url: "https://betterwriting.ai/activate?code=ABCD-EFGH",
+            poll_url: "/api/v1/trial/poll", interval: 1, expires_in: 900 });
+        }
         const existing = state.trials.get(body.device);
         if (existing) return json(res, 200, { api_key: existing, quota: state.quota });
         const key = "bw_trial_" + createHash("sha256").update(body.device).digest("base64url").slice(0, 32);
@@ -54,7 +68,7 @@ export function startMock({ port = 0 } = {}) {
         if (!/^Bearer bw_(live|trial)_/.test(auth) || state.mode === "401") return json(res, 401, { error: "unauthorized" });
         if (state.mode === "402") return json(res, 402, { error: "trial_exhausted", upgrade_url: "https://betterwriting.ai/keys" });
         if (!body?.text) return json(res, 400, { error: "bad_request" });
-        if (body.voice && body.voice !== "pg") return json(res, 404, { error: "unknown_voice" });
+        if (body.voice && body.voice !== "pg" && body.voice !== "human") return json(res, 404, { error: "unknown_voice" });
         const t0 = Date.now();
         const r = body.mode === "markdown" ? markdownRewrite(body.text) : { text: "[pg] " + body.text, blocks: 1 };
         return json(res, 200, { id: "mock", voice: body.voice || "pg", text: r.text, words_in: 0, words_out: 0, model: "mock", prompt_version: "v1",
@@ -65,7 +79,7 @@ export function startMock({ port = 0 } = {}) {
   });
   return new Promise((resolve) => server.listen(port, "127.0.0.1", () => {
     const url = `http://127.0.0.1:${server.address().port}`;
-    resolve({ url, state, requests: state.requests, setMode: (m) => { state.mode = m; }, reset: () => { state.requests.length = 0; state.mode = "ok"; },
+    resolve({ url, state, requests: state.requests, setMode: (m) => { state.mode = m; }, reset: () => { state.requests.length = 0; state.mode = "ok"; state.approval = "auto"; state.grant = "pending"; },
       close: () => new Promise((r) => { server.closeAllConnections?.(); server.close(() => r()); }) });
   }));
 }
